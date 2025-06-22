@@ -142,30 +142,23 @@ router.get('/profile', verifySupabaseToken, async (req, res) => {
   }
 });
 
-// Get all freelancers
-router.get('/freelancers', optionalSupabaseAuth, async (req, res) => {
+// Para obtener freelancers con paginación
+router.get('/freelancers', async (req, res) => {
   try {
-    if (!isSupabaseConfigured || !supabase) {
-      return res.json({ 
-        freelancers: [], 
-        message: 'Supabase not configured - showing empty list' 
-      });
-    }
-    
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('user_id, email, bio, skills, hourly_rate, github_username, portfolio_url, created_at')
+      .select('id, full_name, bio, skills, location, hourly_rate, portfolio_url')
       .eq('user_type', 'freelancer');
-    
+
     if (error) {
       console.error('Error fetching freelancers:', error);
-      return res.status(500).json({ error: 'Failed to fetch freelancers' });
+      return res.status(500).json({ error: 'Error fetching freelancers' });
     }
-    
-    res.json({ freelancers: data || [] });
+
+    res.json({ freelancers: data });
   } catch (error) {
-    console.error('Freelancers fetch error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Unexpected error:', error);
+    res.status(500).json({ error: 'Unexpected error' });
   }
 });
 
@@ -245,5 +238,6 @@ router.get('/user-stats', optionalSupabaseAuth, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 module.exports = router;

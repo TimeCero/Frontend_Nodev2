@@ -16,6 +16,7 @@ let supabase = null;
 if (isSupabaseConfigured) {
   try {
     supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      
       auth: {
         autoRefreshToken: false,
         persistSession: false

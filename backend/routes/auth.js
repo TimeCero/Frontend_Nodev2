@@ -285,7 +285,7 @@ router.get('/users', (req, res) => {
     freelancers: users.filter(u => u.userType === 'freelancer').length,
     users: users.map(user => ({
       id: user.id,
-      name: user.name,
+      full_name: user.name,
       email: user.email,
       userType: user.userType,
       provider: user.provider,
