@@ -23,7 +23,8 @@ router.get('/google/callback',
           const userEmail = req.user.email;
           
           // Use safe function to check and create user profile
-          const tempUserId = crypto.randomUUID();
+          // Use the Passport user ID to maintain consistency
+          const tempUserId = req.user.id;
           
           try {
             // First check if user already exists
@@ -115,7 +116,8 @@ router.get('/github/callback',
           const userEmail = req.user.email || `github_${req.user.id}@noemail.local`;
           
           // Use safe function to check and create user profile
-          const tempUserId = crypto.randomUUID();
+          // Use the Passport user ID to maintain consistency
+          const tempUserId = req.user.id;
           
           try {
             // First check if user already exists

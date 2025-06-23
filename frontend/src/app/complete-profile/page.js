@@ -389,20 +389,6 @@ export default function CompleteProfilePage() {
                   />
                 </div>
 
-                {/* URL del Portafolio */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    URL del Portafolio
-                  </label>
-                  <input
-                    type="url"
-                    name="portfolio_url"
-                    value={formData.portfolio_url}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://tu-portafolio.com"
-                  />
-                </div>
               </>
             )}
 
@@ -423,25 +409,8 @@ export default function CompleteProfilePage() {
                     placeholder="Tu Empresa S.A."
                   />
                 </div>
-
-
               </>
             )}
-
-            {/* LinkedIn (para ambos) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                LinkedIn
-              </label>
-              <input
-                type="url"
-                name="linkedin_url"
-                value={formData.linkedin_url}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="https://linkedin.com/in/tu-perfil"
-              />
-            </div>
 
             {/* Botones */}
             <div className="flex gap-4 pt-6">

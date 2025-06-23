@@ -31,11 +31,8 @@ export default function ProfilePage() {
         });
 
         if (!authResponse.ok) {
-          authResponse = await fetch('http://localhost:3000/auth/me', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
+          console.error('Error connecting to backend server on port 3001');
+          throw new Error('Backend server not available');
         }
 
         if (authResponse.ok) {
@@ -126,7 +123,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const response = await fetch('/api/config');
+        const response = await fetch('http://localhost:3001/config');
         if (response.ok) {
           const configData = await response.json();
           setConfig(configData);

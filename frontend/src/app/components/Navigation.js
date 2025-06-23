@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
+import { supabase } from '../../lib/supabase';
 
 export default function Navigation() {
   const router = useRouter();
@@ -19,65 +20,103 @@ export default function Navigation() {
       .then(data => setConfig(data))
       .catch(err => console.error('Error loading config:', err));
 
-    // Verificar autenticación
-    const token = localStorage.getItem('authToken');
-    const storedUserType = localStorage.getItem('userType');
-    
-    if (token && storedUserType) {
-      setUserType(storedUserType);
-      // Obtener información del usuario
-      fetch('http://localhost:3001/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
+    checkUser();
+  }, []);
+
+  const checkUser = async () => {
+    try {
+      // Primero verificar si hay un token JWT del backend
+      const authToken = localStorage.getItem('authToken');
+      const storedUserType = localStorage.getItem('userType');
+      
+      if (authToken && storedUserType) {
+        // Verificar el token con el backend
+        try {
+          const response = await fetch('http://localhost:3001/auth/verify-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ token: authToken })
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.valid && result.user) {
+              setUser({
+                id: result.user.id,
+                email: result.user.email,
+                name: result.user.full_name || result.user.email?.split('@')[0],
+                full_name: result.user.full_name,
+                avatar: result.user.avatar_url
+              });
+              setUserType(storedUserType);
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('Error verifying JWT token:', error);
+          // Si falla la verificación JWT, limpiar localStorage
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userType');
         }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
+      }
+      
+      // Si no hay token JWT válido, verificar Supabase Auth
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUser(session.user);
+        
+        // Obtener perfil del usuario para determinar el tipo
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('user_type, full_name, avatar_url')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        if (profile) {
+          setUserType(profile.user_type);
           setUser({
-            ...data.user,
-            avatar: data.user.avatar_url || data.user.avatar || data.user.picture
+            ...session.user,
+            full_name: profile.full_name,
+            avatar: profile.avatar_url
           });
         }
-      })
-      .catch(err => console.error('Error getting user info:', err));
+      }
+    } catch (error) {
+      console.error('Error checking user:', error);
     }
-  }, []);
+  };
 
   const handleLogout = async () => {
     try {
-      // Call backend logout endpoint
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
+      // Sign out from Supabase
+      await supabase.auth.signOut();
       
-      if (!response.ok) {
-        console.warn('Backend logout failed, continuing with local cleanup');
-      }
+      // Clear local state
+      setUser(null);
+      setUserType(null);
+      
+      // Clear any remaining localStorage data
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userType');
+      localStorage.removeItem('profileCompleted');
+      localStorage.removeItem('token');
+    
+      // Clear session storage as well
+      sessionStorage.clear();
+    
+      // Reset state
+      setUser(null);
+      setUserType(null);
+    
+      // Redirect to login page with logout message
+      router.push('/login?message=logged_out');
     } catch (error) {
-      console.warn('Error calling logout endpoint:', error);
+      console.error('Error during logout:', error);
+      // Still redirect even if there's an error
+      router.push('/login?message=logged_out');
     }
-    
-    // Clear all local storage data
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userType');
-    localStorage.removeItem('profileCompleted');
-    localStorage.removeItem('token'); // Also remove 'token' if it exists
-    
-    // Clear session storage as well
-    sessionStorage.clear();
-    
-    // Reset state
-    setUser(null);
-    setUserType(null);
-    
-    // Redirect to login page with logout message
-    router.push('/login?message=logged_out');
   };
 
   const getDashboardLink = () => {
@@ -161,7 +200,7 @@ export default function Navigation() {
                     <Link href="/projects" className={getLinkClasses('/projects')}>
                       Explorar Trabajos
                     </Link>
-                    <Link href="/proposals" className={getLinkClasses('/proposals')}>
+                    <Link href="/my-applications" className={getLinkClasses('/my-applications')}>
                       Mis Propuestas
                     </Link>
                     <Link href="/earnings" className={getLinkClasses('/earnings')}>
@@ -351,7 +390,7 @@ export default function Navigation() {
                       <Link href="/projects" className={getLinkClasses('/projects', true)} onClick={() => setIsMenuOpen(false)}>
                         Explorar Trabajos
                       </Link>
-                      <Link href="/proposals" className={getLinkClasses('/proposals', true)} onClick={() => setIsMenuOpen(false)}>
+                      <Link href="/my-applications" className={getLinkClasses('/my-applications', true)} onClick={() => setIsMenuOpen(false)}>
                         Mis Propuestas
                       </Link>
                       <Link href="/earnings" className={getLinkClasses('/earnings', true)} onClick={() => setIsMenuOpen(false)}>

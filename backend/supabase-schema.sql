@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS public.projects (
   freelancer_id UUID REFERENCES public.user_profiles(user_id) ON DELETE SET NULL,
   title TEXT NOT NULL,
   description TEXT NOT NULL,
+  category TEXT,
   budget_min DECIMAL(10,2),
   budget_max DECIMAL(10,2),
   project_type TEXT CHECK (project_type IN ('fixed', 'hourly')) DEFAULT 'fixed',

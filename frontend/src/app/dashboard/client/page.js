@@ -178,6 +178,7 @@ export default function ClientDashboard() {
               <h3 className="text-lg font-medium text-gray-900 mb-4">Acciones Rápidas</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <button 
+                  onClick={() => router.push('/projects/create')}
                   className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
                   style={{ borderColor: config.colors.primary }}
                 >
