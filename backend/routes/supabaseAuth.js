@@ -18,6 +18,7 @@ router.post('/profile', verifySupabaseToken, async (req, res) => {
       linkedin_url,
       website_url,
       company_name,
+      industry,
       availability_status,
       avatar_url
     } = req.body;
@@ -38,6 +39,7 @@ router.post('/profile', verifySupabaseToken, async (req, res) => {
         linkedin_url,
         website_url,
         company_name,
+        industry,
         availability_status,
         updated_at: new Date().toISOString()
       };

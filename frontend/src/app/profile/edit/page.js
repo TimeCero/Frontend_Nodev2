@@ -20,6 +20,7 @@ export default function EditProfilePage() {
     linkedin_url: '',
     website_url: '',
     company_name: '',
+    industry: '',
     availability_status: 'available'
   });
   const [skillInput, setSkillInput] = useState('');
@@ -74,6 +75,7 @@ export default function EditProfilePage() {
           linkedin_url: data.profile.linkedin_url || '',
           website_url: data.profile.website_url || '',
           company_name: data.profile.company_name || '',
+          industry: data.profile.industry || '',
           availability_status: data.profile.availability_status || 'available'
         });
       }
@@ -338,19 +340,55 @@ export default function EditProfilePage() {
 
             {/* Campos específicos para clientes */}
             {userType === 'client' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre de la Empresa
-                </label>
-                <input
-                  type="text"
-                  name="company_name"
-                  value={formData.company_name}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nombre de tu empresa o organización"
-                />
-              </div>
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nombre de la Empresa
+                  </label>
+                  <input
+                    type="text"
+                    name="company_name"
+                    value={formData.company_name}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nombre de tu empresa o organización"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Industria
+                  </label>
+                  <select
+                    name="industry"
+                    value={formData.industry}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Selecciona una industria</option>
+                    <option value="Tecnología">Tecnología</option>
+                    <option value="Educación">Educación</option>
+                    <option value="Salud">Salud</option>
+                    <option value="Finanzas">Finanzas</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="E-commerce">E-commerce</option>
+                    <option value="Manufactura">Manufactura</option>
+                    <option value="Construcción">Construcción</option>
+                    <option value="Turismo">Turismo</option>
+                    <option value="Alimentaria">Alimentaria</option>
+                    <option value="Entretenimiento">Entretenimiento</option>
+                    <option value="Consultoría">Consultoría</option>
+                    <option value="Inmobiliaria">Inmobiliaria</option>
+                    <option value="Automotriz">Automotriz</option>
+                    <option value="Energía">Energía</option>
+                    <option value="Agricultura">Agricultura</option>
+                    <option value="Telecomunicaciones">Telecomunicaciones</option>
+                    <option value="Gobierno">Gobierno</option>
+                    <option value="ONG">ONG</option>
+                    <option value="Otra">Otra</option>
+                  </select>
+                </div>
+              </>
             )}
 
             {/* URLs */}
