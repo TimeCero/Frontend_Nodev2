@@ -90,7 +90,7 @@ const optionalSupabaseAuth = async (req, res, next) => {
     const token = authHeader.substring(7);
     
     // Try to verify token
-    const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+    const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       req.user = null;
       return next();

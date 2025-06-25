@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Navigation from '../../../components/Navigation';
 import { supabase } from '../../../../lib/supabase';
+import { useProjectApplications } from '../../../../hooks/useSupabase';
 
 export default function ApplyToProjectPage() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function ApplyToProjectPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [config, setConfig] = useState({ colors: { primary: '#4CAF50', secondary: '#2C5F7F' } });
+  const { submitApplication } = useProjectApplications(params.id);
   
   const [formData, setFormData] = useState({
     proposal: '',
@@ -53,7 +55,6 @@ export default function ApplyToProjectPage() {
           return;
         }
         setUser(data.user);
-        fetchProjectDetails();
       } else {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userType');
@@ -65,6 +66,13 @@ export default function ApplyToProjectPage() {
       router.push('/login');
     });
   }, [router, params.id]);
+
+  // Efecto separado para cargar detalles del proyecto cuando el usuario esté disponible
+  useEffect(() => {
+    if (user) {
+      fetchProjectDetails();
+    }
+  }, [user]);
 
   const fetchProjectDetails = async () => {
     try {
@@ -98,16 +106,18 @@ export default function ApplyToProjectPage() {
       setProject(projectData);
 
       // Verificar si ya aplicó
-      const { data: existingApplication } = await supabase
-        .from('project_applications')
-        .select('id')
-        .eq('project_id', params.id)
-        .eq('freelancer_id', user?.id)
-        .single();
+      if (user?.id) {
+        const { data: existingApplication } = await supabase
+          .from('project_applications')
+          .select('id')
+          .eq('project_id', params.id)
+          .eq('freelancer_id', user.id)
+          .single();
 
-      if (existingApplication) {
-        router.push(`/projects/${params.id}`);
-        return;
+        if (existingApplication) {
+          router.push(`/projects/${params.id}`);
+          return;
+        }
       }
 
     } catch (error) {
@@ -195,7 +205,7 @@ export default function ApplyToProjectPage() {
         return;
       }
 
-      // Crear la aplicación usando el backend
+      // Crear la aplicación usando el backend API
       const applicationData = {
         project_id: params.id,
         proposal: formData.proposal.trim(),
@@ -207,6 +217,8 @@ export default function ApplyToProjectPage() {
         applicationData.proposed_rate = parseFloat(formData.proposedRate);
       }
 
+      console.log('Submitting application with data:', applicationData);
+
       const response = await fetch('http://localhost:3001/api/applications', {
         method: 'POST',
         headers: {
@@ -216,35 +228,20 @@ export default function ApplyToProjectPage() {
         body: JSON.stringify(applicationData)
       });
 
-      const result = await response.json();
-
       if (!response.ok) {
-        console.error('Error creating application:', result);
-        
-        if (response.status === 401) {
-          alert('Error de autenticación. Por favor, inicia sesión nuevamente.');
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('userType');
-          router.push('/login');
-        } else if (result.error?.includes('duplicate') || result.error?.includes('already applied')) {
-          alert('Ya has aplicado a este proyecto anteriormente.');
-        } else {
-          alert(`Error al enviar la aplicación: ${result.error || 'Error desconocido'}`);
-        }
-        return;
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al enviar la aplicación');
       }
 
-      // TODO: Manejar archivos adjuntos si es necesario
-      // if (formData.attachments.length > 0) {
-      //   // Subir archivos a Supabase Storage
-      // }
+      const result = await response.json();
+      console.log('Application submitted successfully:', result);
 
       // Redirigir al proyecto con mensaje de éxito
       router.push(`/projects/${params.id}?applied=true`);
 
     } catch (error) {
       console.error('Error submitting application:', error);
-      alert('Error inesperado al enviar la aplicación. Por favor, inténtalo de nuevo.');
+      alert(`Error al enviar la aplicación: ${error.message}`);
     } finally {
       setSubmitting(false);
     }

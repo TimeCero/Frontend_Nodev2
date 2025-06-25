@@ -34,28 +34,80 @@ export default function AuthSuccessPage() {
       body: JSON.stringify({ token })
     })
     .then(res => res.json())
-    .then(data => {
+    .then(async data => {
       if (data.valid) {
         setUser(data.user);
-        // Verificar si el perfil ya está completo
-        const profileCompleted = localStorage.getItem('profileCompleted');
         
-        // Redirigir según el estado del perfil después de 3 segundos
-        setTimeout(() => {
-          if (profileCompleted === 'true') {
-            // Perfil ya completado, ir al dashboard
-            if (userTypeParam === 'client') {
-              router.push('/dashboard/client');
-            } else if (userTypeParam === 'freelancer') {
-              router.push('/dashboard/freelancer');
-            } else {
-              router.push('/dashboard');
+        // Verificar si ya existe un perfil completo en Supabase
+        try {
+          const profileResponse = await fetch('http://localhost:3001/api/profile', {
+            headers: {
+              'Authorization': `Bearer ${token}`
             }
-          } else {
-            // Perfil no completado, ir a completar perfil
-            router.push('/setup-profile');
+          });
+          
+          let hasCompleteProfile = false;
+          
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json();
+            if (profileData.profile) {
+              // Verificar si el perfil tiene los campos críticos completos
+              const profile = profileData.profile;
+              const hasName = profile.full_name && profile.full_name.trim() !== '';
+              const hasBio = profile.bio && profile.bio.trim() !== '';
+              
+              if (userTypeParam === 'freelancer') {
+                const hasSkills = profile.skills && profile.skills.length > 0;
+                hasCompleteProfile = hasName && hasBio && hasSkills;
+              } else {
+                const hasCompany = profile.company_name && profile.company_name.trim() !== '';
+                hasCompleteProfile = hasName && hasBio && hasCompany;
+              }
+              
+              // Actualizar localStorage basado en el estado real del perfil
+              if (hasCompleteProfile) {
+                localStorage.setItem('profileCompleted', 'true');
+              } else {
+                localStorage.removeItem('profileCompleted');
+              }
+            }
           }
-        }, 3000);
+          
+          // Redirigir según el estado del perfil después de 3 segundos
+          setTimeout(() => {
+            if (hasCompleteProfile) {
+              // Perfil ya completado, ir al dashboard
+              if (userTypeParam === 'client') {
+                router.push('/dashboard/client');
+              } else if (userTypeParam === 'freelancer') {
+                router.push('/dashboard/freelancer');
+              } else {
+                router.push('/dashboard');
+              }
+            } else {
+              // Perfil no completado o incompleto, ir a completar perfil
+              router.push('/setup-profile');
+            }
+          }, 3000);
+          
+        } catch (profileError) {
+          console.error('Error checking profile:', profileError);
+          // En caso de error, usar el comportamiento por defecto
+          const profileCompleted = localStorage.getItem('profileCompleted');
+          setTimeout(() => {
+            if (profileCompleted === 'true') {
+              if (userTypeParam === 'client') {
+                router.push('/dashboard/client');
+              } else if (userTypeParam === 'freelancer') {
+                router.push('/dashboard/freelancer');
+              } else {
+                router.push('/dashboard');
+              }
+            } else {
+              router.push('/setup-profile');
+            }
+          }, 3000);
+        }
       } else {
         setError('Token inválido');
         localStorage.removeItem('authToken');

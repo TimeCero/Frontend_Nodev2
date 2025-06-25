@@ -39,6 +39,7 @@ const { supabase, isSupabaseConfigured } = require('./config/supabase');
 const authRoutes = require('./routes/auth');
 const supabaseAuthRoutes = require('./routes/supabaseAuth');
 app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes); // Mount auth routes at /api/auth as well
 app.use('/api', supabaseAuthRoutes);
 
 // Ruta de prueba

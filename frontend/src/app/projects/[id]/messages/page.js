@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Navigation from '../../components/Navigation';
-import { supabase } from '../../../lib/supabase';
+import Navigation from '../../../components/Navigation';
+import { supabase } from '../../../../lib/supabase';
 
 export default function ProjectMessagesPage() {
   const params = useParams();
@@ -77,9 +77,9 @@ export default function ProjectMessagesPage() {
   const fetchProjectAndMessages = async () => {
     try {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
+      const token = localStorage.getItem('authToken');
       
-      if (!session) {
+      if (!token) {
         router.push('/login');
         return;
       }
@@ -87,7 +87,7 @@ export default function ProjectMessagesPage() {
       // Obtener proyecto
       const projectResponse = await fetch(`http://localhost:3001/api/projects/${params.id}`, {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -102,7 +102,7 @@ export default function ProjectMessagesPage() {
       // Obtener mensajes
       const messagesResponse = await fetch(`http://localhost:3001/api/projects/${params.id}/messages`, {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -130,9 +130,9 @@ export default function ProjectMessagesPage() {
 
     try {
       setSending(true);
-      const { data: { session } } = await supabase.auth.getSession();
+      const token = localStorage.getItem('authToken');
       
-      if (!session) {
+      if (!token) {
         router.push('/login');
         return;
       }
@@ -140,7 +140,7 @@ export default function ProjectMessagesPage() {
       const response = await fetch(`http://localhost:3001/api/projects/${params.id}/messages`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ content: newMessage.trim() })

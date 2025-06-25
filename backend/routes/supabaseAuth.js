@@ -417,23 +417,10 @@ router.get('/projects/:id', async (req, res) => {
 });
 
 // Obtener aplicaciones de un proyecto específico
-router.get('/projects/:id/applications', async (req, res) => {
+router.get('/projects/:id/applications', verifySupabaseToken, async (req, res) => {
   try {
     const projectId = req.params.id;
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ message: 'Token de autenticación requerido' });
-    }
-
-    // Verificar token
-    const jwt = require('jsonwebtoken');
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu_jwt_secret_aqui');
-    } catch (error) {
-      return res.status(401).json({ message: 'Token inválido' });
-    }
+    const userId = req.user.id;
 
     // Validar UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -442,6 +429,22 @@ router.get('/projects/:id/applications', async (req, res) => {
     }
 
     if (isSupabaseConfigured && supabase) {
+      // Primero verificar que el usuario es el dueño del proyecto
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('client_id')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError || !project) {
+        return res.status(404).json({ message: 'Proyecto no encontrado' });
+      }
+
+      // Verificar que el usuario es el dueño del proyecto
+      if (project.client_id !== userId) {
+        return res.status(403).json({ message: 'No tienes permisos para ver las aplicaciones de este proyecto' });
+      }
+
       const { data, error } = await supabase
         .from('project_applications')
         .select(`
@@ -479,7 +482,86 @@ router.get('/projects/:id/applications', async (req, res) => {
   }
 });
 
+// Obtener la aplicación del usuario actual para un proyecto específico
+router.get('/projects/:id/user-application', verifySupabaseToken, async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const userId = req.user.id;
 
+    // Validar que el projectId sea un UUID válido
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(projectId)) {
+      return res.status(400).json({ message: 'ID de proyecto inválido' });
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from('project_applications')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('freelancer_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error('Error fetching user application:', error);
+        return res.status(500).json({ 
+          message: 'Error al obtener la aplicación del usuario',
+          error: error.message 
+        });
+      }
+
+      res.json({ application: data || null });
+    } else {
+      res.status(500).json({ message: 'Supabase no está configurado' });
+    }
+
+  } catch (error) {
+    console.error('Error fetching user application:', error);
+    res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message 
+    });
+  }
+});
+
+// Obtener el número total de aplicaciones de un proyecto
+router.get('/projects/:id/applications-count', verifySupabaseToken, async (req, res) => {
+  try {
+    const projectId = req.params.id;
+
+    // Validar que el projectId sea un UUID válido
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(projectId)) {
+      return res.status(400).json({ message: 'ID de proyecto inválido' });
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      const { count, error } = await supabase
+        .from('project_applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('project_id', projectId);
+
+      if (error) {
+        console.error('Error fetching applications count:', error);
+        return res.status(500).json({ 
+          message: 'Error al obtener el número de aplicaciones',
+          error: error.message 
+        });
+      }
+
+      res.json({ count: count || 0 });
+    } else {
+      res.status(500).json({ message: 'Supabase no está configurado' });
+    }
+
+  } catch (error) {
+    console.error('Error fetching applications count:', error);
+    res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message 
+    });
+  }
+});
 
 // Aceptar o rechazar una aplicación
 router.patch('/applications/:id/status', async (req, res) => {
@@ -497,6 +579,9 @@ router.patch('/applications/:id/status', async (req, res) => {
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu_jwt_secret_aqui');
+      console.log('Debug - Messages endpoint - Full decoded token:', decoded);
+      console.log('Debug - Messages endpoint - User ID from token (sub):', decoded.sub);
+      console.log('Debug - Messages endpoint - User ID from token (id):', decoded.id);
     } catch (error) {
       return res.status(401).json({ message: 'Token inválido' });
     }
@@ -529,7 +614,7 @@ router.patch('/applications/:id/status', async (req, res) => {
         return res.status(404).json({ message: 'Aplicación no encontrada' });
       }
 
-      if (application.projects.client_id !== decoded.sub) {
+      if (application.projects.client_id !== decoded.id) {
         return res.status(403).json({ message: 'No autorizado para modificar esta aplicación' });
       }
 
@@ -537,8 +622,7 @@ router.patch('/applications/:id/status', async (req, res) => {
       const { data, error } = await supabase
         .from('project_applications')
         .update({ 
-          status,
-          updated_at: new Date().toISOString()
+          status
         })
         .eq('id', applicationId)
         .select()
@@ -606,24 +690,33 @@ router.get('/projects/:id/messages', async (req, res) => {
         return res.status(404).json({ message: 'Proyecto no encontrado' });
       }
 
+      console.log('Debug - Messages endpoint - Project client_id:', project.client_id);
+      console.log('Debug - Messages endpoint - User ID:', decoded.id);
+      
       // Verificar si el usuario es el cliente o tiene una aplicación aceptada
-      let hasAccess = project.client_id === decoded.sub;
+      let hasAccess = project.client_id === decoded.id;
+      console.log('Debug - Messages endpoint - Is project owner:', hasAccess);
       
       if (!hasAccess) {
+        console.log('Debug - Messages endpoint - Checking for accepted application');
         const { data: application } = await supabase
           .from('project_applications')
           .select('status')
           .eq('project_id', projectId)
-          .eq('freelancer_id', decoded.sub)
+          .eq('freelancer_id', decoded.id)
           .eq('status', 'accepted')
           .single();
         
+        console.log('Debug - Messages endpoint - Application found:', !!application);
         hasAccess = !!application;
       }
 
       if (!hasAccess) {
+        console.log('Debug - Messages endpoint - Access denied for user:', decoded.id);
         return res.status(403).json({ message: 'No autorizado para ver los mensajes de este proyecto' });
       }
+      
+      console.log('Debug - Messages endpoint - Access granted for user:', decoded.id);
 
       // Obtener mensajes
       const { data, error } = await supabase
@@ -704,14 +797,14 @@ router.post('/projects/:id/messages', async (req, res) => {
       }
 
       // Verificar si el usuario es el cliente o tiene una aplicación aceptada
-      let hasAccess = project.client_id === decoded.sub;
+      let hasAccess = project.client_id === decoded.id;
       
       if (!hasAccess) {
         const { data: application } = await supabase
           .from('project_applications')
           .select('status')
           .eq('project_id', projectId)
-          .eq('freelancer_id', decoded.sub)
+          .eq('freelancer_id', decoded.id)
           .eq('status', 'accepted')
           .single();
         
@@ -727,7 +820,7 @@ router.post('/projects/:id/messages', async (req, res) => {
         .from('messages')
         .insert({
           project_id: projectId,
-          sender_id: decoded.sub,
+          sender_id: decoded.id,
           content: content.trim(),
           created_at: new Date().toISOString()
         })
@@ -861,7 +954,7 @@ router.post('/applications', verifySupabaseToken, async (req, res) => {
 router.post('/reviews', verifySupabaseToken, async (req, res) => {
   try {
     const { project_id, reviewee_id, rating, comment } = req.body;
-    const decoded = req.user;
+    const user = req.user;
 
     // Validar datos
     if (!project_id || !reviewee_id || !rating) {
@@ -891,14 +984,14 @@ router.post('/reviews', verifySupabaseToken, async (req, res) => {
       }
 
       // Verificar que el usuario puede hacer review (es cliente o freelancer aceptado)
-      let canReview = project.client_id === decoded.sub;
+      let canReview = project.client_id === user.id;
       
       if (!canReview) {
         const { data: application } = await supabase
           .from('project_applications')
           .select('status')
           .eq('project_id', project_id)
-          .eq('freelancer_id', decoded.sub)
+          .eq('freelancer_id', user.id)
           .eq('status', 'accepted')
           .single();
         
@@ -914,7 +1007,7 @@ router.post('/reviews', verifySupabaseToken, async (req, res) => {
         .from('reviews')
         .select('id')
         .eq('project_id', project_id)
-        .eq('reviewer_id', decoded.sub)
+        .eq('reviewer_id', user.id)
         .eq('reviewee_id', reviewee_id)
         .single();
 
@@ -927,7 +1020,7 @@ router.post('/reviews', verifySupabaseToken, async (req, res) => {
         .from('reviews')
         .insert({
           project_id,
-          reviewer_id: decoded.sub,
+          reviewer_id: user.id,
           reviewee_id,
           rating,
           comment: comment || null,
@@ -968,6 +1061,85 @@ router.post('/reviews', verifySupabaseToken, async (req, res) => {
       message: 'Error interno del servidor',
       error: error.message 
     });
+  }
+});
+
+// Obtener perfil de un usuario específico
+router.get('/users/:id/profile', async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Validar UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+      return res.status(400).json({ message: 'ID de usuario inválido' });
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return res.status(404).json({ 
+          message: 'Perfil de usuario no encontrado',
+          error: error.message 
+        });
+      }
+
+      res.json({ profile });
+    } else {
+      res.status(503).json({ 
+        message: 'Supabase no configurado',
+        error: 'Please set up Supabase environment variables' 
+      });
+    }
+  } catch (error) {
+    console.error('Error in /users/:id/profile:', error);
+    res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message 
+    });
+  }
+});
+
+// Get freelancer profile by ID (using the primary key 'id')
+router.get('/freelancers/:id/profile', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validar que sea un UUID válido
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      return res.status(400).json({ message: 'ID de freelancer inválido - debe ser un UUID' });
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', id)
+        .eq('user_type', 'freelancer')
+        .single();
+
+      if (error) {
+        console.error('Error fetching freelancer profile:', error);
+        return res.status(404).json({ 
+          message: 'Perfil de freelancer no encontrado',
+          error: error.message 
+        });
+      }
+
+      res.json({ profile });
+    } else {
+      res.status(503).json({ message: 'Supabase no configurado' });
+    }
+  } catch (error) {
+    console.error('Error in freelancer profile endpoint:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
 
@@ -1026,6 +1198,224 @@ router.get('/users/:id/reviews', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching user reviews:', error);
+    res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message 
+    });
+  }
+});
+
+// Enviar mensaje directo a un usuario
+router.post('/messages', verifySupabaseToken, async (req, res) => {
+  try {
+    const { recipient_id, content } = req.body;
+    const user = req.user;
+
+    // Validar datos
+    if (!recipient_id || !content) {
+      return res.status(400).json({ message: 'recipient_id y content son requeridos' });
+    }
+
+    if (!content.trim()) {
+      return res.status(400).json({ message: 'El contenido del mensaje no puede estar vacío' });
+    }
+
+    // Validar UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(recipient_id)) {
+      return res.status(400).json({ message: 'ID de destinatario inválido' });
+    }
+
+    // No permitir enviarse mensajes a sí mismo
+    if (recipient_id === user.id) {
+      return res.status(400).json({ message: 'No puedes enviarte mensajes a ti mismo' });
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      // Verificar que el destinatario existe
+      const { data: recipient, error: recipientError } = await supabase
+        .from('user_profiles')
+        .select('user_id, full_name')
+        .eq('user_id', recipient_id)
+        .single();
+
+      if (recipientError || !recipient) {
+        return res.status(404).json({ message: 'Usuario destinatario no encontrado' });
+      }
+
+      // Crear el mensaje directo
+      const { data, error } = await supabase
+        .from('direct_messages')
+        .insert({
+          sender_id: user.id,
+          recipient_id,
+          content: content.trim(),
+          created_at: new Date().toISOString()
+        })
+        .select(`
+          *,
+          sender:user_profiles!direct_messages_sender_id_fkey(
+            user_id,
+            full_name,
+            avatar_url
+          ),
+          recipient:user_profiles!direct_messages_recipient_id_fkey(
+            user_id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .single();
+
+      if (error) {
+        console.error('Error creating direct message:', error);
+        return res.status(500).json({ 
+          message: 'Error al enviar el mensaje',
+          error: error.message 
+        });
+      }
+
+      res.status(201).json({ 
+        message: 'Mensaje enviado exitosamente',
+        data 
+      });
+    } else {
+      res.status(503).json({ 
+        message: 'Supabase no configurado',
+        error: 'Please set up Supabase environment variables' 
+      });
+    }
+  } catch (error) {
+    console.error('Error in /messages:', error);
+    res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message 
+    });
+  }
+});
+
+// Obtener conversaciones del usuario
+router.get('/messages/conversations', verifySupabaseToken, async (req, res) => {
+  try {
+    const user = req.user;
+
+    if (isSupabaseConfigured && supabase) {
+      // Obtener todas las conversaciones donde el usuario participa
+      const { data, error } = await supabase
+        .from('direct_messages')
+        .select(`
+          *,
+          sender:user_profiles!direct_messages_sender_id_fkey(
+            user_id,
+            full_name,
+            avatar_url
+          ),
+          recipient:user_profiles!direct_messages_recipient_id_fkey(
+            user_id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching conversations:', error);
+        return res.status(500).json({ 
+          message: 'Error al obtener las conversaciones',
+          error: error.message 
+        });
+      }
+
+      // Agrupar mensajes por conversación
+      const conversations = {};
+      data.forEach(message => {
+        const otherUserId = message.sender_id === user.id ? message.recipient_id : message.sender_id;
+        const otherUser = message.sender_id === user.id ? message.recipient : message.sender;
+        
+        if (!conversations[otherUserId]) {
+          conversations[otherUserId] = {
+            user: otherUser,
+            messages: [],
+            lastMessage: null
+          };
+        }
+        
+        conversations[otherUserId].messages.push(message);
+        if (!conversations[otherUserId].lastMessage || 
+            new Date(message.created_at) > new Date(conversations[otherUserId].lastMessage.created_at)) {
+          conversations[otherUserId].lastMessage = message;
+        }
+      });
+
+      // Convertir a array y ordenar por último mensaje
+      const conversationsList = Object.values(conversations)
+        .sort((a, b) => new Date(b.lastMessage.created_at) - new Date(a.lastMessage.created_at));
+
+      res.json({ conversations: conversationsList });
+    } else {
+      res.status(503).json({ 
+        message: 'Supabase no configurado',
+        error: 'Please set up Supabase environment variables' 
+      });
+    }
+  } catch (error) {
+    console.error('Error in /messages/conversations:', error);
+    res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message 
+    });
+  }
+});
+
+// Obtener mensajes de una conversación específica
+router.get('/messages/conversation/:userId', verifySupabaseToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = req.user;
+
+    // Validar UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+      return res.status(400).json({ message: 'ID de usuario inválido' });
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from('direct_messages')
+        .select(`
+          *,
+          sender:user_profiles!direct_messages_sender_id_fkey(
+            user_id,
+            full_name,
+            avatar_url
+          ),
+          recipient:user_profiles!direct_messages_recipient_id_fkey(
+            user_id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .or(`and(sender_id.eq.${user.id},recipient_id.eq.${userId}),and(sender_id.eq.${userId},recipient_id.eq.${user.id})`)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching conversation:', error);
+        return res.status(500).json({ 
+          message: 'Error al obtener la conversación',
+          error: error.message 
+        });
+      }
+
+      res.json({ messages: data || [] });
+    } else {
+      res.status(503).json({ 
+        message: 'Supabase no configurado',
+        error: 'Please set up Supabase environment variables' 
+      });
+    }
+  } catch (error) {
+    console.error('Error in /messages/conversation/:userId:', error);
     res.status(500).json({ 
       message: 'Error interno del servidor',
       error: error.message 

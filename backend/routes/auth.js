@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { passport, generateJWT, getAllUsers } = require('../config/passport');
 const { supabase, isSupabaseConfigured } = require('../config/supabase');
-const { authenticateJWT } = require('../middleware/auth');
+const { authenticateJWTWithSupabase, requireClientWithSupabase, requireFreelancerWithSupabase } = require('../middleware/supabaseAuthMiddleware');
 const router = express.Router();
 
 // Ruta para iniciar autenticación con Google (para clientes)
@@ -240,7 +240,7 @@ router.get('/logout', (req, res) => {
 });
 
 // Ruta para obtener información del usuario actual
-router.get('/me', authenticateJWT, (req, res) => {
+router.get('/me', authenticateJWTWithSupabase, (req, res) => {
   if (req.user) {
     res.json({
       user: {
@@ -274,6 +274,29 @@ router.post('/verify-token', (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     res.json({ valid: true, user: decoded });
   } catch (error) {
+    res.status(401).json({ valid: false, error: 'Token inválido' });
+  }
+});
+
+// Ruta para verificar token JWT desde Authorization header
+router.get('/verify', authenticateJWTWithSupabase, (req, res) => {
+  if (req.user) {
+    res.json({
+      valid: true,
+      user: {
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+        avatar: req.user.avatar,
+        userType: req.user.userType,
+        provider: req.user.provider,
+        ...(req.user.userType === 'freelancer' && {
+          username: req.user.username,
+          githubProfile: req.user.githubProfile
+        })
+      }
+    });
+  } else {
     res.status(401).json({ valid: false, error: 'Token inválido' });
   }
 });

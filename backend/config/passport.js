@@ -120,5 +120,6 @@ module.exports = {
   passport,
   generateJWT,
   getAllUsers,
-  getUserById
+  getUserById,
+  users
 };

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../../lib/supabase';
 
 export default function ProjectApplicationsPage() {
   const params = useParams();
@@ -26,6 +26,30 @@ export default function ProjectApplicationsPage() {
 
   const checkUser = async () => {
     try {
+      // First try to verify backend JWT token
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        const response = await fetch('http://localhost:3001/auth/verify-token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.valid) {
+            setUser({ id: data.user.id, email: data.user.email });
+            return;
+          } else {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userType');
+          }
+        }
+      }
+
+      // Fallback to Supabase auth
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push('/login');
@@ -41,17 +65,22 @@ export default function ProjectApplicationsPage() {
   const fetchProjectAndApplications = async () => {
     try {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!user) {
         router.push('/login');
         return;
       }
 
       // Obtener proyecto
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        router.push('/login');
+        return;
+      }
+      
       const projectResponse = await fetch(`http://localhost:3001/api/projects/${params.id}`, {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -64,7 +93,7 @@ export default function ProjectApplicationsPage() {
       setProject(projectData.project);
 
       // Verificar que el usuario es el dueño del proyecto
-      if (projectData.project.client_id !== session.user.id) {
+      if (projectData.project.client_id !== user.id) {
         setError('No tienes permisos para ver las aplicaciones de este proyecto');
         return;
       }
@@ -72,7 +101,7 @@ export default function ProjectApplicationsPage() {
       // Obtener aplicaciones
       const applicationsResponse = await fetch(`http://localhost:3001/api/projects/${params.id}/applications`, {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -94,9 +123,10 @@ export default function ProjectApplicationsPage() {
 
   const handleApplicationStatus = async (applicationId, status) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = localStorage.getItem('authToken');
       
-      if (!session) {
+      if (!authToken) {
+        alert('Debes estar autenticado para realizar esta acción.');
         router.push('/login');
         return;
       }
@@ -104,10 +134,10 @@ export default function ProjectApplicationsPage() {
       const response = await fetch(`http://localhost:3001/api/applications/${applicationId}/status`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
         },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status: status })
       });
 
       if (!response.ok) {
@@ -119,7 +149,7 @@ export default function ProjectApplicationsPage() {
       setApplications(prev => 
         prev.map(app => 
           app.id === applicationId 
-            ? { ...app, status, updated_at: new Date().toISOString() }
+            ? { ...app, status }
             : app
         )
       );
@@ -127,8 +157,8 @@ export default function ProjectApplicationsPage() {
       alert(`Aplicación ${status === 'accepted' ? 'aceptada' : 'rechazada'} exitosamente`);
 
     } catch (error) {
-      console.error('Error:', error);
-      alert(error.message);
+      console.error('Error updating application status:', error);
+      alert(`Error: ${error.message}`);
     }
   };
 

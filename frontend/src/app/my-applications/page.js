@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
+import Navigation from '../components/Navigation';
 
 export default function MyApplicationsPage() {
   const router = useRouter();
@@ -108,28 +109,47 @@ export default function MyApplicationsPage() {
           }
         } catch (error) {
           console.error('Error verifying JWT token:', error);
-          // Si falla la verificación JWT, limpiar localStorage
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('userType');
+          // No limpiar localStorage aquí, solo continuar con Supabase
         }
       }
       
       // Si no hay token JWT válido, verificar Supabase Auth
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
+      if (session) {
+        console.log('Found Supabase session:', session.user.id);
+        setUser(session.user);
+        
+        // Obtener perfil del usuario
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        if (profileError) {
+          console.error('Error fetching user profile:', profileError);
+          // Intentar buscar por email si no se encuentra por user_id
+          if (session.user.email) {
+            const { data: profileByEmail } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('email', session.user.email)
+              .single();
+            
+            if (profileByEmail) {
+              setUserProfile(profileByEmail);
+              return;
+            }
+          }
+        } else {
+          setUserProfile(profile);
+          return;
+        }
       }
-      setUser(session.user);
       
-      // Obtener perfil del usuario
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .single();
-      
-      setUserProfile(profile);
+      // Si no hay ningún tipo de autenticación válida, redirigir al login
+      console.log('No valid authentication found, redirecting to login');
+      router.push('/login');
     } catch (error) {
       console.error('Error checking user:', error);
       router.push('/login');
@@ -137,10 +157,71 @@ export default function MyApplicationsPage() {
   };
 
   const fetchApplications = async () => {
+    if (!user) return;
+    
     try {
       setLoading(true);
       
-      // Obtener aplicaciones del usuario desde Supabase
+      console.log('Fetching applications for user:', user);
+      console.log('User ID:', user.id);
+      console.log('User email:', user.email);
+      
+      let userProfile = null;
+      let profileError = null;
+      
+      // Si el usuario tiene email, buscar por email
+      if (user.email) {
+        console.log('Searching for user profile with email:', user.email);
+        const result = await supabase
+          .from('user_profiles')
+          .select('user_id, email')
+          .eq('email', user.email)
+          .single();
+        userProfile = result.data;
+        profileError = result.error;
+      } else {
+        // Si no tiene email (usuario de GitHub sin email público), buscar por user_id
+        console.log('No email found, searching by user_id:', user.id);
+        const result = await supabase
+          .from('user_profiles')
+          .select('user_id, email')
+          .eq('user_id', user.id)
+          .single();
+        userProfile = result.data;
+        profileError = result.error;
+        
+        // Si no se encuentra por user_id, intentar buscar por email generado para GitHub
+        if (profileError) {
+          console.log('Trying with generated GitHub email:', `github_${user.id}@noemail.local`);
+          const githubResult = await supabase
+            .from('user_profiles')
+            .select('user_id, email')
+            .eq('email', `github_${user.id}@noemail.local`)
+            .single();
+          userProfile = githubResult.data;
+          profileError = githubResult.error;
+        }
+      }
+
+      console.log('Profile query result:', { userProfile, profileError });
+
+      if (profileError) {
+        console.error('Error getting user profile:', profileError);
+        
+        // Intentar buscar todos los perfiles para debug
+        const { data: allProfiles } = await supabase
+          .from('user_profiles')
+          .select('email, user_id')
+          .limit(10);
+        console.log('Available profiles:', allProfiles);
+        
+        throw new Error('No se pudo obtener el perfil del usuario');
+      }
+
+      const supabaseUserId = userProfile.user_id;
+      console.log('Supabase User ID:', supabaseUserId);
+
+      // Obtener aplicaciones del usuario desde Supabase usando el user_id de Supabase
       const { data, error } = await supabase
         .from('project_applications')
         .select(`
@@ -160,10 +241,14 @@ export default function MyApplicationsPage() {
             )
           )
         `)
-        .eq('freelancer_id', user.id)
+        .eq('freelancer_id', supabaseUserId)
         .order('created_at', { ascending: false });
 
+      console.log('Supabase query result:', { data, error });
+      console.log('Applications found:', data?.length || 0);
+
       if (error) {
+        console.error('Supabase error:', error);
         throw new Error(error.message);
       }
 
@@ -214,7 +299,7 @@ export default function MyApplicationsPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando tus aplicaciones...</p>
+          <p className="mt-4 text-gray-600">Cargando tus propuestas...</p>
         </div>
       </div>
     );
@@ -240,16 +325,17 @@ export default function MyApplicationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Navigation />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                📋 Mis Aplicaciones
+                📋 Mis Propuestas
               </h1>
               <p className="text-gray-600">
-                Gestiona y revisa el estado de tus aplicaciones a proyectos
+                Gestiona y revisa el estado de tus propuestas a proyectos
               </p>
             </div>
             <button
@@ -298,7 +384,7 @@ export default function MyApplicationsPage() {
             </div>
             
             <div className="text-sm text-gray-600">
-              Mostrando {filteredApplications.length} de {applications.length} aplicaciones
+              Mostrando {filteredApplications.length} de {applications.length} propuestas
             </div>
           </div>
         </div>
@@ -351,10 +437,10 @@ export default function MyApplicationsPage() {
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <div className="text-gray-400 text-6xl mb-4">📝</div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              No has enviado aplicaciones aún
+              No has enviado propuestas aún
             </h3>
             <p className="text-gray-600 mb-6">
-              Explora proyectos disponibles y envía tu primera aplicación.
+              Explora proyectos disponibles y envía tu primera propuesta.
             </p>
             <button
               onClick={() => router.push('/projects')}
@@ -367,7 +453,7 @@ export default function MyApplicationsPage() {
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <div className="text-gray-400 text-6xl mb-4">🔍</div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              No se encontraron aplicaciones
+              No se encontraron propuestas
             </h3>
             <p className="text-gray-600 mb-6">
               Intenta cambiar los filtros para ver más resultados.
@@ -482,7 +568,7 @@ export default function MyApplicationsPage() {
                 {/* Application Date */}
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <p className="text-sm text-gray-500">
-                    Aplicación enviada el {new Date(application.created_at).toLocaleDateString('es-ES', {
+                    Propuesta enviada el {new Date(application.created_at).toLocaleDateString('es-ES', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',
