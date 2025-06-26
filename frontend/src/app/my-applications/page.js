@@ -166,6 +166,35 @@ export default function MyApplicationsPage() {
       console.log('User ID:', user.id);
       console.log('User email:', user.email);
       
+      // Verificar si el usuario está autenticado con JWT del backend
+      const authToken = localStorage.getItem('authToken');
+      
+      if (authToken) {
+        // Usar el backend API para obtener las aplicaciones
+        console.log('Using backend API to fetch applications');
+        
+        const response = await fetch('http://localhost:3001/api/my-applications', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Backend API response:', data);
+          setApplications(data || []);
+          return;
+        } else {
+          console.error('Backend API error:', response.status, response.statusText);
+          // Fallback a Supabase si el backend falla
+        }
+      }
+      
+      // Fallback: usar Supabase directamente (para usuarios autenticados con Supabase Auth)
+      console.log('Using Supabase direct query');
+      
       let userProfile = null;
       let profileError = null;
       

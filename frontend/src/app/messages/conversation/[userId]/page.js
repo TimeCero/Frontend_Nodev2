@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import Navigation from '../../../components/Navigation';
 
 export default function ConversationPage() {
   const router = useRouter();
@@ -90,7 +91,12 @@ export default function ConversationPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setMessages(data.messages || []);
+        // Asegurar que todos los mensajes tengan IDs únicos
+        const messagesWithIds = (data.messages || []).map((message, index) => ({
+          ...message,
+          id: message.id || `loaded-${Date.now()}-${index}`
+        }));
+        setMessages(messagesWithIds);
       } else {
         const errorData = await response.json();
         setError(errorData.message || 'Error al cargar los mensajes');
@@ -117,14 +123,22 @@ export default function ConversationPage() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          recipientId: params.userId,
+          recipient_id: params.userId,
           content: newMessage.trim()
         })
       });
 
       if (response.ok) {
         const data = await response.json();
-        setMessages(prev => [...prev, data.message]);
+        // Asegurar que el mensaje tenga un ID único, created_at válido y sender_id correcto
+        const newMessageObj = {
+          ...data.message,
+          id: data.message.id || `temp-${Date.now()}-${Math.random()}`,
+          created_at: data.message.created_at || new Date().toISOString(),
+          sender_id: data.message.sender_id || currentUser?.id,
+          content: data.message.content || newMessage.trim()
+        };
+        setMessages(prev => [...prev, newMessageObj]);
         setNewMessage('');
       } else {
         const errorData = await response.json();
@@ -139,7 +153,9 @@ export default function ConversationPage() {
   };
 
   const formatTime = (dateString) => {
+    if (!dateString) return 'Hora no disponible';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Hora inválida';
     return date.toLocaleTimeString('es-ES', { 
       hour: '2-digit', 
       minute: '2-digit' 
@@ -147,7 +163,9 @@ export default function ConversationPage() {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'Fecha no disponible';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Fecha inválida';
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -164,11 +182,14 @@ export default function ConversationPage() {
   const groupMessagesByDate = (messages) => {
     const groups = {};
     messages.forEach(message => {
-      const date = new Date(message.created_at).toDateString();
-      if (!groups[date]) {
-        groups[date] = [];
-      }
-      groups[date].push(message);
+      // Validar que created_at existe y es válido
+      const createdAt = message.created_at || new Date().toISOString();
+      const date = new Date(createdAt);
+      const dateKey = isNaN(date.getTime()) ? new Date().toDateString() : date.toDateString();
+      if (!groups[dateKey]) {
+         groups[dateKey] = [];
+       }
+       groups[dateKey].push(message);
     });
     return groups;
   };
@@ -188,7 +209,9 @@ export default function ConversationPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
+      <Navigation />
+      
+      {/* Conversation Header */}
       <div className="bg-white shadow-sm border-b flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">

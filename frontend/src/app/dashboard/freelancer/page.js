@@ -9,6 +9,31 @@ export default function FreelancerDashboard() {
   const [loading, setLoading] = useState(true);
   const [showProfileBanner, setShowProfileBanner] = useState(false);
   const [config, setConfig] = useState({ colors: { primary: '#4CAF50', secondary: '#2C5F7F' } });
+  const [applications, setApplications] = useState([]);
+  const [stats, setStats] = useState({ sent: 0, completed: 0 });
+
+  const fetchApplications = async (token) => {
+    try {
+      const response = await fetch('http://localhost:3001/api/my-applications', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setApplications(data.applications || []);
+        
+        // Calcular estadísticas
+        const totalSent = data.applications?.length || 0;
+        const completed = data.applications?.filter(app => app.status === 'accepted')?.length || 0;
+        
+        setStats({ sent: totalSent, completed });
+      }
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -49,6 +74,9 @@ export default function FreelancerDashboard() {
             localStorage.setItem('profileCompleted', 'true');
           }
         }
+        
+        // Obtener aplicaciones del freelancer
+        fetchApplications(token);
       } else {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userType');
@@ -192,18 +220,16 @@ export default function FreelancerDashboard() {
                 </div>
               )}
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h3 className="font-medium text-blue-900">Proyectos Activos</h3>
-                  <p className="text-2xl font-bold text-blue-600">0</p>
+                  <h3 className="font-medium text-blue-900">Propuestas Enviadas</h3>
+                  <p className="text-2xl font-bold text-blue-600">{stats.sent}</p>
+                  <p className="text-sm text-gray-600 mt-1">Aplicaciones totales</p>
                 </div>
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <h3 className="font-medium text-green-900">Proyectos Completados</h3>
-                  <p className="text-2xl font-bold text-green-600">0</p>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                  <h3 className="font-medium text-purple-900">Ingresos Totales</h3>
-                  <p className="text-2xl font-bold text-purple-600">$0</p>
+                  <h3 className="font-medium text-green-900">Propuestas Aceptadas</h3>
+                  <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+                  <p className="text-sm text-gray-600 mt-1">Proyectos conseguidos</p>
                 </div>
               </div>
             </div>
@@ -215,6 +241,7 @@ export default function FreelancerDashboard() {
               <h3 className="text-lg font-medium text-gray-900 mb-4">Acciones Rápidas</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <button 
+                  onClick={() => router.push('/projects')}
                   className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
                   style={{ borderColor: config.colors.secondary }}
                 >
@@ -223,19 +250,28 @@ export default function FreelancerDashboard() {
                   <p className="text-sm text-gray-600">Encuentra nuevas oportunidades</p>
                 </button>
                 
-                <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                <button 
+                  onClick={() => router.push('/my-applications')}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
                   <div className="text-2xl mb-2">📝</div>
                   <h4 className="font-medium text-gray-900">Mis Propuestas</h4>
                   <p className="text-sm text-gray-600">Gestiona tus ofertas enviadas</p>
                 </button>
                 
-                <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                <button 
+                  onClick={() => router.push('/messages')}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
                   <div className="text-2xl mb-2">💬</div>
                   <h4 className="font-medium text-gray-900">Mensajes</h4>
                   <p className="text-sm text-gray-600">Comunícate con clientes</p>
                 </button>
                 
-                <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                <button 
+                  onClick={() => router.push('/profile')}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
                   <div className="text-2xl mb-2">👤</div>
                   <h4 className="font-medium text-gray-900">Mi Perfil</h4>
                   <p className="text-sm text-gray-600">Actualiza tu información</p>
@@ -255,7 +291,8 @@ export default function FreelancerDashboard() {
                   Cuando haya nuevos proyectos que coincidan con tu perfil, aparecerán aquí.
                 </p>
                 <button 
-                  className="mt-4 px-4 py-2 text-white rounded-lg transition-colors"
+                  onClick={() => router.push('/projects')}
+                  className="mt-4 px-4 py-2 text-white rounded-lg transition-colors hover:opacity-90"
                   style={{ backgroundColor: config.colors.secondary }}
                 >
                   Explorar Proyectos

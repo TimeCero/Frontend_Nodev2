@@ -203,9 +203,6 @@ export default function Navigation() {
                     <Link href="/my-applications" className={getLinkClasses('/my-applications')}>
                       Mis Propuestas
                     </Link>
-                    <Link href="/earnings" className={getLinkClasses('/earnings')}>
-                      Mis Ingresos
-                    </Link>
                   </>
                 )}
                 
@@ -392,9 +389,6 @@ export default function Navigation() {
                       </Link>
                       <Link href="/my-applications" className={getLinkClasses('/my-applications', true)} onClick={() => setIsMenuOpen(false)}>
                         Mis Propuestas
-                      </Link>
-                      <Link href="/earnings" className={getLinkClasses('/earnings', true)} onClick={() => setIsMenuOpen(false)}>
-                        Mis Ingresos
                       </Link>
                     </>
                   )}

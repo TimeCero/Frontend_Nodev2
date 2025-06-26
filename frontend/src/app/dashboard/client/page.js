@@ -9,6 +9,63 @@ export default function ClientDashboard() {
   const [loading, setLoading] = useState(true);
   const [showProfileBanner, setShowProfileBanner] = useState(false);
   const [config, setConfig] = useState({ colors: { primary: '#4CAF50', secondary: '#2C5F7F' } });
+  const [projects, setProjects] = useState([]);
+  const [stats, setStats] = useState({ active: 0, hired: 0, completed: 0 });
+
+  const fetchProjects = async (token) => {
+    try {
+      const response = await fetch('http://localhost:3001/api/projects/my', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const projectsData = await response.json();
+        setProjects(projectsData);
+        await calculateStats(projectsData, token);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
+  };
+
+  const calculateStats = async (projectsData, token) => {
+    let activeProjects = 0;
+    let completedProjects = 0;
+    let totalHired = 0;
+
+    for (const project of projectsData) {
+      if (project.status === 'active') {
+        activeProjects++;
+      } else if (project.status === 'completed') {
+        completedProjects++;
+      }
+
+      // Obtener aplicaciones aceptadas para cada proyecto
+      try {
+        const response = await fetch(`http://localhost:3001/api/projects/${project.id}/applications`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const { applications } = await response.json();
+          const acceptedApplications = applications.filter(app => app.status === 'accepted');
+          totalHired += acceptedApplications.length;
+        }
+      } catch (error) {
+        console.error('Error fetching applications for project:', project.id, error);
+      }
+    }
+
+    setStats({
+      active: activeProjects,
+      hired: totalHired,
+      completed: completedProjects
+    });
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -49,6 +106,9 @@ export default function ClientDashboard() {
             localStorage.setItem('profileCompleted', 'true');
           }
         }
+        
+        // Obtener proyectos y estadísticas
+        fetchProjects(token);
       } else {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userType');
@@ -158,15 +218,15 @@ export default function ClientDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                   <h3 className="font-medium text-green-900">Proyectos Activos</h3>
-                  <p className="text-2xl font-bold text-green-600">0</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.active}</p>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <h3 className="font-medium text-blue-900">Freelancers Contratados</h3>
-                  <p className="text-2xl font-bold text-blue-600">0</p>
+                  <p className="text-2xl font-bold text-blue-600">{stats.hired}</p>
                 </div>
                 <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                   <h3 className="font-medium text-purple-900">Proyectos Completados</h3>
-                  <p className="text-2xl font-bold text-purple-600">0</p>
+                  <p className="text-2xl font-bold text-purple-600">{stats.completed}</p>
                 </div>
               </div>
             </div>
@@ -187,19 +247,28 @@ export default function ClientDashboard() {
                   <p className="text-sm text-gray-600">Crea un nuevo proyecto y encuentra freelancers</p>
                 </button>
                 
-                <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                <button 
+                  onClick={() => router.push('/freelancers')}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
                   <div className="text-2xl mb-2">🔍</div>
                   <h4 className="font-medium text-gray-900">Buscar Freelancers</h4>
                   <p className="text-sm text-gray-600">Explora perfiles de freelancers</p>
                 </button>
                 
-                <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                <button 
+                  onClick={() => router.push('/messages')}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
                   <div className="text-2xl mb-2">💬</div>
                   <h4 className="font-medium text-gray-900">Mensajes</h4>
                   <p className="text-sm text-gray-600">Revisa tus conversaciones</p>
                 </button>
                 
-                <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                <button 
+                  onClick={() => router.push('/profile')}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
                   <div className="text-2xl mb-2">⚙️</div>
                   <h4 className="font-medium text-gray-900">Configuración</h4>
                   <p className="text-sm text-gray-600">Ajusta tu perfil y preferencias</p>
@@ -211,14 +280,65 @@ export default function ClientDashboard() {
           {/* Recent Activity */}
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Actividad Reciente</h3>
-              <div className="text-center py-8">
-                <div className="text-4xl mb-4">📋</div>
-                <p className="text-gray-500">No hay actividad reciente</p>
-                <p className="text-sm text-gray-400 mt-2">
-                  Cuando publiques proyectos o contrates freelancers, verás la actividad aquí.
-                </p>
-              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Proyectos Recientes</h3>
+              {projects.length > 0 ? (
+                <div className="space-y-4">
+                  {projects.slice(0, 5).map((project) => (
+                    <div key={project.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{project.title}</h4>
+                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{project.description}</p>
+                          <div className="flex items-center mt-2 space-x-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              project.status === 'active' ? 'bg-green-100 text-green-800' :
+                              project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {project.status === 'active' ? 'Activo' :
+                               project.status === 'completed' ? 'Completado' :
+                               project.status}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              ${project.budget}
+                            </span>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => router.push(`/projects/${project.id}`)}
+                          className="ml-4 text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          Ver detalles
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {projects.length > 5 && (
+                    <div className="text-center pt-4">
+                      <button 
+                        onClick={() => router.push('/projects/my')}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Ver todos los proyectos ({projects.length})
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-4">📋</div>
+                  <p className="text-gray-500">No tienes proyectos aún</p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    Publica tu primer proyecto para encontrar freelancers talentosos.
+                  </p>
+                  <button 
+                    onClick={() => router.push('/projects/create')}
+                    className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+                  >
+                    Publicar Proyecto
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -80,6 +80,123 @@ export default function MyProjectsPage() {
     return `$${min}/hora`;
   };
 
+  const updateProjectStatus = async (projectId, status) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:3001/api/projects/${projectId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status })
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar el estado del proyecto');
+      }
+
+      // Recargar los proyectos
+      await fetchMyProjects();
+      alert('Estado del proyecto actualizado exitosamente');
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al actualizar el estado del proyecto');
+    }
+  };
+
+  const deleteProject = async (projectId) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este proyecto? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:3001/api/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al eliminar el proyecto');
+      }
+
+      // Recargar los proyectos
+      await fetchMyProjects();
+      alert('Proyecto eliminado exitosamente');
+    } catch (error) {
+      console.error('Error:', error);
+      alert(error.message || 'Error al eliminar el proyecto');
+    }
+  };
+
+  const getActionButtons = (project) => {
+    const buttons = [];
+    
+    // Botón Ver detalles (siempre disponible)
+    buttons.push(
+      <button
+        key="details"
+        onClick={() => router.push(`/projects/${project.id}`)}
+        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+      >
+        Ver detalles
+      </button>
+    );
+
+    // Botones de gestión según el estado
+    if (project.status === 'open' || project.status === 'in_progress') {
+      buttons.push(
+        <button
+          key="complete"
+          onClick={() => updateProjectStatus(project.id, 'completed')}
+          className="text-green-600 hover:text-green-800 text-sm font-medium"
+        >
+          Finalizar
+        </button>
+      );
+      
+      buttons.push(
+        <button
+          key="cancel"
+          onClick={() => updateProjectStatus(project.id, 'cancelled')}
+          className="text-yellow-600 hover:text-yellow-800 text-sm font-medium"
+        >
+          Cancelar
+        </button>
+      );
+    }
+
+    // Botón eliminar (solo para proyectos no en progreso)
+    if (project.status !== 'in_progress') {
+      buttons.push(
+        <button
+          key="delete"
+          onClick={() => deleteProject(project.id)}
+          className="text-red-600 hover:text-red-800 text-sm font-medium"
+        >
+          Eliminar
+        </button>
+      );
+    }
+
+    return buttons;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -183,12 +300,11 @@ export default function MyProjectsPage() {
                     <span className="text-xs text-gray-500">
                       Creado: {formatDate(project.created_at)}
                     </span>
-                    <button
-                      onClick={() => router.push(`/projects/${project.id}`)}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                    >
-                      Ver detalles
-                    </button>
+                    <div className="flex gap-2 flex-wrap">
+                      {getActionButtons(project).map((button, index) => (
+                        <span key={index}>{button}</span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>

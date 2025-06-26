@@ -311,6 +311,36 @@ export default function CompleteProfilePage() {
                   />
                 </div>
 
+                {/* Portfolio URL */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    URL del Portfolio de la Empresa
+                  </label>
+                  <input
+                    type="url"
+                    name="portfolio_url"
+                    value={formData.portfolio_url}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="https://portfolio-empresa.com"
+                  />
+                </div>
+
+                {/* LinkedIn */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    LinkedIn de la Empresa
+                  </label>
+                  <input
+                    type="url"
+                    name="linkedin_url"
+                    value={formData.linkedin_url}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="https://linkedin.com/company/tu-empresa"
+                  />
+                </div>
+
                 {/* Sitio web de la empresa */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

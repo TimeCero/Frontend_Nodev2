@@ -1133,7 +1133,14 @@ router.get('/freelancers/:id/profile', async (req, res) => {
         });
       }
 
-      res.json({ profile });
+      // Asegurar que user_id esté disponible para mensajes directos
+      res.json({ 
+        profile: {
+          ...profile,
+          // Destacar que user_id debe usarse para mensajes
+          messaging_id: profile.user_id
+        }
+      });
     } else {
       res.status(503).json({ message: 'Supabase no configurado' });
     }
@@ -1416,6 +1423,190 @@ router.get('/messages/conversation/:userId', verifySupabaseToken, async (req, re
     }
   } catch (error) {
     console.error('Error in /messages/conversation/:userId:', error);
+    res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message 
+    });
+  }
+});
+
+// Endpoint para obtener las aplicaciones del freelancer autenticado
+router.get('/my-applications', verifySupabaseToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from('project_applications')
+        .select(`
+          *,
+          projects (
+            id,
+            title,
+            description,
+            budget_min,
+            budget_max,
+            client_id,
+            status,
+            created_at,
+            user_profiles!projects_client_id_fkey (
+              full_name,
+              avatar_url
+            )
+          )
+        `)
+        .eq('freelancer_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching my applications:', error);
+        return res.status(500).json({ 
+          message: 'Error al obtener las aplicaciones',
+          error: error.message 
+        });
+      }
+
+      res.json(data || []);
+    } else {
+      res.status(503).json({ 
+        message: 'Supabase no configurado',
+        error: 'Please set up Supabase environment variables' 
+      });
+    }
+  } catch (error) {
+    console.error('Error in /my-applications:', error);
+    res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message 
+    });
+  }
+});
+
+// Actualizar estado de un proyecto (finalizar, cancelar)
+router.patch('/projects/:id/status', verifySupabaseToken, async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const userId = req.user.id;
+    const { status } = req.body;
+
+    // Validar UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(projectId)) {
+      return res.status(400).json({ message: 'ID de proyecto inválido' });
+    }
+
+    // Validar estado
+    const validStatuses = ['completed', 'cancelled', 'open', 'in_progress'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Estado inválido' });
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      // Verificar que el usuario es el dueño del proyecto
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('client_id')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError || !project) {
+        return res.status(404).json({ message: 'Proyecto no encontrado' });
+      }
+
+      if (project.client_id !== userId) {
+        return res.status(403).json({ message: 'No tienes permisos para modificar este proyecto' });
+      }
+
+      // Actualizar el estado del proyecto
+      const { data, error } = await supabase
+        .from('projects')
+        .update({ 
+          status: status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', projectId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating project status:', error);
+        return res.status(500).json({ 
+          message: 'Error al actualizar el estado del proyecto',
+          error: error.message 
+        });
+      }
+
+      res.json({ 
+        message: 'Estado del proyecto actualizado exitosamente',
+        project: data 
+      });
+    } else {
+      res.status(500).json({ message: 'Supabase no está configurado' });
+    }
+
+  } catch (error) {
+    console.error('Error updating project status:', error);
+    res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message 
+    });
+  }
+});
+
+// Eliminar un proyecto
+router.delete('/projects/:id', verifySupabaseToken, async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const userId = req.user.id;
+
+    // Validar UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(projectId)) {
+      return res.status(400).json({ message: 'ID de proyecto inválido' });
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      // Verificar que el usuario es el dueño del proyecto
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('client_id, status')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError || !project) {
+        return res.status(404).json({ message: 'Proyecto no encontrado' });
+      }
+
+      if (project.client_id !== userId) {
+        return res.status(403).json({ message: 'No tienes permisos para eliminar este proyecto' });
+      }
+
+      // Solo permitir eliminar proyectos que no estén en progreso
+      if (project.status === 'in_progress') {
+        return res.status(400).json({ message: 'No se puede eliminar un proyecto en progreso' });
+      }
+
+      // Eliminar el proyecto (las aplicaciones se eliminarán automáticamente por CASCADE)
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) {
+        console.error('Error deleting project:', error);
+        return res.status(500).json({ 
+          message: 'Error al eliminar el proyecto',
+          error: error.message 
+        });
+      }
+
+      res.json({ message: 'Proyecto eliminado exitosamente' });
+    } else {
+      res.status(500).json({ message: 'Supabase no está configurado' });
+    }
+
+  } catch (error) {
+    console.error('Error deleting project:', error);
     res.status(500).json({ 
       message: 'Error interno del servidor',
       error: error.message 

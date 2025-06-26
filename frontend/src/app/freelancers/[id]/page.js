@@ -96,6 +96,16 @@ export default function FreelancerProfile() {
     setSendingMessage(true);
     try {
       const token = localStorage.getItem('authToken');
+      
+      // Usar user_id del freelancer para mensajes directos, no el id de la URL
+      const recipientId = freelancer?.user_id || freelancer?.messaging_id;
+      
+      if (!recipientId) {
+        alert('Error: No se pudo obtener el ID del destinatario');
+        setSendingMessage(false);
+        return;
+      }
+      
       const response = await fetch('http://localhost:3001/api/messages', {
         method: 'POST',
         headers: {
@@ -103,7 +113,7 @@ export default function FreelancerProfile() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          recipient_id: params.id,
+          recipient_id: recipientId,
           content: message
         })
       });
@@ -111,8 +121,9 @@ export default function FreelancerProfile() {
       if (response.ok) {
         setMessage('');
         setShowMessageModal(false);
-        // Redirigir a la conversación
-        router.push(`/messages/conversation/${params.id}`);
+        // Redirigir a la conversación usando el user_id correcto
+        const recipientId = freelancer?.user_id || freelancer?.messaging_id;
+        router.push(`/messages/conversation/${recipientId}`);
       } else {
         const errorData = await response.json();
         alert(errorData.message || 'Error al enviar el mensaje');
