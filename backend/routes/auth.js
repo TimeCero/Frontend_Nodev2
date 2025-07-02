@@ -262,7 +262,7 @@ router.get('/me', authenticateJWTWithSupabase, (req, res) => {
 });
 
 // Ruta para verificar token JWT
-router.post('/auth/verify-token', (req, res) => {
+router.post('/verify-token', (req, res) => {
 
   const { token } = req.body;
   
