@@ -30,7 +30,8 @@ export default function FreelancerProfile() {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/verify', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/verify`, {
+
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -52,7 +53,8 @@ export default function FreelancerProfile() {
   const fetchFreelancerProfile = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3001/api/freelancers/${params.id}/profile`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/freelancers/${params.id}/profile`, {
+
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -75,7 +77,8 @@ export default function FreelancerProfile() {
   const fetchFreelancerReviews = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3001/api/users/${params.id}/reviews`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/${params.id}/reviews`, {
+
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -106,7 +109,8 @@ export default function FreelancerProfile() {
         return;
       }
       
-      const response = await fetch('http://localhost:3001/api/messages', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/messages`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

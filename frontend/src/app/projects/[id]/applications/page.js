@@ -29,7 +29,8 @@ export default function ProjectApplicationsPage() {
       // First try to verify backend JWT token
       const token = localStorage.getItem('authToken');
       if (token) {
-        const response = await fetch('http://localhost:3001/auth/verify-token', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify-token`, {
+
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -78,7 +79,8 @@ export default function ProjectApplicationsPage() {
         return;
       }
       
-      const projectResponse = await fetch(`http://localhost:3001/api/projects/${params.id}`, {
+      const projectResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}`, {
+
         headers: {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'
@@ -99,7 +101,8 @@ export default function ProjectApplicationsPage() {
       }
 
       // Obtener aplicaciones
-      const applicationsResponse = await fetch(`http://localhost:3001/api/projects/${params.id}/applications`, {
+      const applicationsResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}/applications`, {
+
         headers: {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'
@@ -131,7 +134,8 @@ export default function ProjectApplicationsPage() {
         return;
       }
 
-      const response = await fetch(`http://localhost:3001/api/applications/${applicationId}/status`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/applications/${applicationId}/status`, {
+
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

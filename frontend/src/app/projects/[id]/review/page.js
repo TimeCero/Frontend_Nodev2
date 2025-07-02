@@ -33,7 +33,8 @@ export default function ProjectReviewPage() {
       }
       
       // Verify token with backend
-      const response = await fetch('http://localhost:3001/api/auth/verify', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/verify`, {
+
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -66,7 +67,8 @@ export default function ProjectReviewPage() {
       }
 
       // Obtener proyecto
-      const projectResponse = await fetch(`http://localhost:3001/api/projects/${params.id}`, {
+      const projectResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}`, {
+
         headers: {
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` })
@@ -81,7 +83,8 @@ export default function ProjectReviewPage() {
       setProject(projectData.project);
 
       // Obtener aplicaciones aceptadas para encontrar participantes
-      const applicationsResponse = await fetch(`http://localhost:3001/api/projects/${params.id}/applications`, {
+      const applicationsResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}/applications`, {
+
         headers: {
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` })
@@ -157,7 +160,8 @@ export default function ProjectReviewPage() {
         return;
       }
       
-      const response = await fetch('http://localhost:3001/api/reviews', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/reviews`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

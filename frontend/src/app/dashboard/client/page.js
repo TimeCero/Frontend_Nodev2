@@ -14,7 +14,8 @@ export default function ClientDashboard() {
 
   const fetchProjects = async (token) => {
     try {
-      const response = await fetch('http://localhost:3001/api/projects/my', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${project.id}/applications`, {
+
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -44,7 +45,8 @@ export default function ClientDashboard() {
 
       // Obtener aplicaciones aceptadas para cada proyecto
       try {
-        const response = await fetch(`http://localhost:3001/api/projects/${project.id}/applications`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/my`, {
+
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -77,13 +79,15 @@ export default function ClientDashboard() {
     }
 
     // Obtener configuración
-    fetch('http://localhost:3001/config')
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/config`)
+
       .then(res => res.json())
       .then(data => setConfig(data))
       .catch(err => console.error('Error loading config:', err));
 
     // Verificar autenticación
-    fetch('http://localhost:3001/auth/verify-token', {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify-token`, {
+
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

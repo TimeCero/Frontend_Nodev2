@@ -78,7 +78,9 @@ export default function MyApplicationsPage() {
       if (authToken && storedUserType) {
         // Verificar el token con el backend
         try {
-          const response = await fetch('http://localhost:3001/auth/verify-token', {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify-token`, {
+
+
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -173,7 +175,8 @@ export default function MyApplicationsPage() {
         // Usar el backend API para obtener las aplicaciones
         console.log('Using backend API to fetch applications');
         
-        const response = await fetch('http://localhost:3001/api/my-applications', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/my-applications`, {
+
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${authToken}`,

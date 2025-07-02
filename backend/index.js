@@ -119,7 +119,8 @@ app.use('*', (req, res) => {
 
 // Inicia el servidor
 app.listen(port, () => {
-  console.log(`🚀 Servidor backend escuchando en http://localhost:${port}`);
+  const backendUrl = process.env.BACKEND_URL || `http://localhost:${port}`;
+  console.log(`🚀 Servidor backend escuchando en ${backendUrl}`);
   console.log(`🎨 Colores: Primary ${process.env.PRIMARY_COLOR}, Secondary ${process.env.SECONDARY_COLOR}`);
   console.log(`🔐 OAuth configurado: Google ${!!process.env.GOOGLE_CLIENT_ID}, GitHub ${!!process.env.GITHUB_CLIENT_ID}`);
 });

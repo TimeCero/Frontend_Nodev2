@@ -30,13 +30,16 @@ export default function FreelancersPage() {
     }
 
     // Obtener configuración
-    fetch('http://localhost:3001/config')
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/config`)
+
+
       .then(res => res.json())
       .then(data => setConfig(data))
       .catch(err => console.error('Error loading config:', err));
 
     // Verificar autenticación
-    fetch('http://localhost:3001/auth/verify-token', {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify-token`, {
+
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -24,7 +24,8 @@ export default function ProfilePage() {
         }
 
         // Primero obtener datos básicos del usuario
-        let authResponse = await fetch('http://localhost:3001/auth/me', {
+        let authResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/me`, {
+
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -40,7 +41,8 @@ export default function ProfilePage() {
           
           // Luego obtener datos completos del perfil desde Supabase
           try {
-            const profileResponse = await fetch('http://localhost:3001/api/profile', {
+            const profileResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile`, {
+
               headers: {
                 'Authorization': `Bearer ${token}`
               }
@@ -92,7 +94,8 @@ export default function ProfilePage() {
           
           // Fetch user stats
           try {
-            const statsResponse = await fetch(`http://localhost:3001/api/user-stats`, {
+            const statsResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user-stats`, {
+
               headers: {
                 'Authorization': `Bearer ${token}`
               }
@@ -123,7 +126,8 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const response = await fetch('http://localhost:3001/config');
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/config`);
+
         if (response.ok) {
           const configData = await response.json();
           setConfig(configData);

@@ -133,7 +133,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     // Obtener configuración del backend
-    fetch('http://localhost:3001/config')
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/config`)
+
       .then(res => res.json())
       .then(data => setConfig(data))
       .catch(err => console.error('Error loading config:', err));
@@ -159,14 +160,16 @@ export default function LoginPage() {
     if (isLoading.google || isLoading.github) return; // Prevent multiple clicks
     setIsLoading({ ...isLoading, google: true });
     setError(''); // Clear any previous errors
-    window.location.href = 'http://localhost:3001/auth/google';
+    window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`;
+
   };
 
   const handleGithubLogin = () => {
     if (isLoading.google || isLoading.github) return; // Prevent multiple clicks
     setIsLoading({ ...isLoading, github: true });
     setError(''); // Clear any previous errors
-    window.location.href = 'http://localhost:3001/auth/github';
+    window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/github`;
+
   };
 
   return (

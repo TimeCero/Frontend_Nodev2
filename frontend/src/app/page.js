@@ -23,7 +23,7 @@ export default function Home() {
     }
 
     // Obtener configuración
-    fetch('http://localhost:3001/config')
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/config`)
       .then(res => res.json())
       .then(data => setConfig(data))
       .catch(err => console.error('Error loading config:', err));

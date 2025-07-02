@@ -40,7 +40,8 @@ export default function ConversationPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/verify', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/verify`, {
+
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -62,7 +63,8 @@ export default function ConversationPage() {
   const fetchOtherUserProfile = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3001/api/users/${params.userId}/profile`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/${params.userId}/profile`, {
+
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -83,7 +85,8 @@ export default function ConversationPage() {
   const fetchMessages = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3001/api/messages/conversation/${params.userId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/messages/conversation/${params.userId}`, {
+
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -116,7 +119,8 @@ export default function ConversationPage() {
     setSending(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3001/api/messages', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/messages`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

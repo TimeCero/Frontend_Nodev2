@@ -40,7 +40,8 @@ export default function AuthSuccessPage() {
         
         // Verificar si ya existe un perfil completo en Supabase
         try {
-          const profileResponse = await fetch('http://localhost:3001/api/profile', {
+          const profileResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile`, {
+
             headers: {
               'Authorization': `Bearer ${token}`
             }

@@ -56,7 +56,8 @@ export default function ProjectsPage() {
       if (authToken && storedUserType) {
         // Verificar el token con el backend
         try {
-          const response = await fetch('http://localhost:3001/auth/verify-token', {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify-token`, {
+
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -102,7 +103,8 @@ export default function ProjectsPage() {
       setLoading(true);
 
       // Obtener configuración
-      fetch('http://localhost:3001/config')
+      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/config`)
+
         .then(res => res.json())
         .then(data => setConfig(data))
         .catch(err => console.error('Error loading config:', err));

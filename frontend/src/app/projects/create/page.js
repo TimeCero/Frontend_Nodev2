@@ -52,13 +52,15 @@ export default function CreateProjectPage() {
     }
 
     // Obtener configuración
-    fetch('http://localhost:3001/config')
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/config`)
+
       .then(res => res.json())
       .then(data => setConfig(data))
       .catch(err => console.error('Error loading config:', err));
 
     // Verificar autenticación
-    fetch('http://localhost:3001/auth/verify-token', {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify-token`, {
+
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -203,7 +205,8 @@ export default function CreateProjectPage() {
 
       // Crear proyecto a través del backend API
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3001/api/projects', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

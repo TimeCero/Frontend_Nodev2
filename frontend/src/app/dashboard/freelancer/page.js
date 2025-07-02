@@ -14,7 +14,8 @@ export default function FreelancerDashboard() {
 
   const fetchApplications = async (token) => {
     try {
-      const response = await fetch('http://localhost:3001/api/my-applications', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/my-applications`, {
+
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -45,13 +46,15 @@ export default function FreelancerDashboard() {
     }
 
     // Obtener configuración
-    fetch('http://localhost:3001/config')
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/config`)
+
       .then(res => res.json())
       .then(data => setConfig(data))
       .catch(err => console.error('Error loading config:', err));
 
     // Verificar autenticación
-    fetch('http://localhost:3001/auth/verify-token', {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify-token`, {
+
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

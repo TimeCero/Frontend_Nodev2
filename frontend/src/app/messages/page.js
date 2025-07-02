@@ -25,7 +25,8 @@ export default function MessagesPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/verify', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/verify`, {
+
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -47,7 +48,8 @@ export default function MessagesPage() {
   const fetchConversations = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3001/api/messages/conversations', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/messages/conversations`, {
+
         headers: {
           'Authorization': `Bearer ${token}`
         }

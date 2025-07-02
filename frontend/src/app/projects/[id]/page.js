@@ -48,7 +48,7 @@ export default function ProjectDetailPage() {
       // First try to verify backend JWT token
       const token = localStorage.getItem('authToken');
       if (token) {
-        const response = await fetch('http://localhost:3001/auth/verify-token', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify-token`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ export default function ProjectDetailPage() {
       setLoading(true);
       
       // Obtener configuración
-      fetch('http://localhost:3001/config')
+      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/config`)
         .then(res => res.json())
         .then(data => setConfig(data))
         .catch(err => console.error('Error loading config:', err));
@@ -112,7 +112,7 @@ export default function ProjectDetailPage() {
       
       // Obtener detalles del proyecto a través del backend API
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3001/api/projects/${params.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +143,7 @@ export default function ProjectDetailPage() {
       // Obtener el número total de aplicaciones para todos los usuarios
       if (user && token) {
         try {
-          const countResponse = await fetch(`http://localhost:3001/api/projects/${params.id}/applications-count`, {
+          const countResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}/applications-count`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -172,7 +172,7 @@ export default function ProjectDetailPage() {
       if (user && token && projectData && projectData.project && projectData.project.client_id === user.id) {
         console.log('Debug - Fetching applications for project owner');
         try {
-          const applicationsResponse = await fetch(`http://localhost:3001/api/projects/${params.id}/applications`, {
+          const applicationsResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}/applications`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -199,7 +199,7 @@ export default function ProjectDetailPage() {
       } else if (user && token) {
         // Si es un freelancer, verificar si ya aplicó a este proyecto
         try {
-          const userApplicationResponse = await fetch(`http://localhost:3001/api/projects/${params.id}/user-application`, {
+          const userApplicationResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}/user-application`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -275,7 +275,7 @@ export default function ProjectDetailPage() {
         return;
       }
 
-      const response = await fetch(`http://localhost:3001/api/applications/${applicationId}/status`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/applications/${applicationId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

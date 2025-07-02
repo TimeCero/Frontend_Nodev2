@@ -1,12 +1,15 @@
 // Script para verificar la estructura de freelancers
+require('dotenv').config();
 
 const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImU1ZGEzMWI3LTkzNTgtNDkzOS05ZGVkLWI0MGMyMGM0YWMyYiIsImVtYWlsIjoiYWRyaWFuby5hcXAwMEBnbWFpbC5jb20iLCJ1c2VyVHlwZSI6ImNsaWVudCIsInByb3ZpZGVyIjoiZ29vZ2xlIiwiaWF0IjoxNzUwODQxNjYxLCJleHAiOjE3NTE0NDY0NjF9.H9dGBNATXc6PbniqbwSm0q04mb-74OVxMYLG-UJTIak';
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
 
 async function checkFreelancerStructure() {
   try {
     console.log('🔍 Verificando estructura de freelancers...');
     
-    const response = await fetch('http://localhost:3001/api/freelancers', {
+    const response = await fetch(`${BACKEND_URL}/api/freelancers`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

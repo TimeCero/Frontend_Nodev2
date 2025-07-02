@@ -23,7 +23,8 @@ export default function ManageProjectPage() {
         return;
       }
 
-      const response = await fetch(`http://localhost:3001/api/projects/${params.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}`, {
+
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -53,7 +54,8 @@ export default function ManageProjectPage() {
         return;
       }
 
-      const response = await fetch(`http://localhost:3001/api/projects/${params.id}/status`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}/status`, {
+
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -89,7 +91,8 @@ export default function ManageProjectPage() {
         return;
       }
 
-      const response = await fetch(`http://localhost:3001/api/projects/${params.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}`, {
+
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

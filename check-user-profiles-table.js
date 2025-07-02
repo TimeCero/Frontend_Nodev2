@@ -1,13 +1,14 @@
-// Script para verificar la tabla user_profiles
+require('dotenv').config();
 
 const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImU1ZGEzMWI3LTkzNTgtNDkzOS05ZGVkLWI0MGMyMGM0YWMyYiIsImVtYWlsIjoiYWRyaWFuby5hcXAwMEBnbWFpbC5jb20iLCJ1c2VyVHlwZSI6ImNsaWVudCIsInByb3ZpZGVyIjoiZ29vZ2xlIiwiaWF0IjoxNzUwODQxNjYxLCJleHAiOjE3NTE0NDY0NjF9.H9dGBNATXc6PbniqbwSm0q04mb-74OVxMYLG-UJTIak';
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
 
 async function checkUserProfiles() {
   try {
     console.log('🔍 Verificando tabla user_profiles...');
     
-    // Intentar obtener user_profiles directamente desde la API
-    const response = await fetch('http://localhost:3001/api/user-profiles', {
+    const response = await fetch(`${BACKEND_URL}/api/user-profiles`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -29,11 +30,10 @@ async function checkUserProfiles() {
       console.log('Error:', errorText);
     }
     
-    // Verificar si el freelancer específico existe en user_profiles
     const freelancerId = '7f5ad001-cc80-4914-b7b2-7fba5caa4b02';
     console.log(`\n🔍 Verificando si el freelancer ${freelancerId} existe en user_profiles...`);
     
-    const userResponse = await fetch(`http://localhost:3001/api/user-profiles/${freelancerId}`, {
+    const userResponse = await fetch(`${BACKEND_URL}/api/user-profiles/${freelancerId}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -59,5 +59,4 @@ async function checkUserProfiles() {
   }
 }
 
-// Ejecutar la verificación
 checkUserProfiles();

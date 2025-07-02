@@ -41,7 +41,8 @@ export default function ProjectMessagesPage() {
       // First try to verify backend JWT token
       const token = localStorage.getItem('authToken');
       if (token) {
-        const response = await fetch('http://localhost:3001/auth/verify-token', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify-token`, {
+
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -85,7 +86,8 @@ export default function ProjectMessagesPage() {
       }
 
       // Obtener proyecto
-      const projectResponse = await fetch(`http://localhost:3001/api/projects/${params.id}`, {
+      const projectResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}`, {
+
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -100,7 +102,8 @@ export default function ProjectMessagesPage() {
       setProject(projectData.project);
 
       // Obtener mensajes
-      const messagesResponse = await fetch(`http://localhost:3001/api/projects/${params.id}/messages`, {
+      const messagesResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}/messages`, {
+
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -137,7 +140,8 @@ export default function ProjectMessagesPage() {
         return;
       }
 
-      const response = await fetch(`http://localhost:3001/api/projects/${params.id}/messages`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/projects/${params.id}/messages`, {
+
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

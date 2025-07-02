@@ -26,7 +26,8 @@ export default function CompleteProfilePage() {
   const loadExistingProfile = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3001/api/profile', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile`, {
+
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -120,7 +121,8 @@ export default function CompleteProfilePage() {
 
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3001/api/profile', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -38,13 +38,13 @@ export default function EditProfilePage() {
     setUserType(storedUserType);
 
     // Obtener configuración
-    fetch('http://localhost:3001/config')
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/config`)
       .then(res => res.json())
       .then(data => setConfig(data))
       .catch(err => console.error('Error loading config:', err));
 
     // Obtener información del usuario
-    fetch('http://localhost:3001/auth/me', {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/me`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -58,7 +58,7 @@ export default function EditProfilePage() {
     .catch(err => console.error('Error getting user info:', err));
 
     // Obtener perfil actual
-    fetch('http://localhost:3001/api/profile', {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -159,7 +159,7 @@ export default function EditProfilePage() {
 
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:3001/api/profile', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
