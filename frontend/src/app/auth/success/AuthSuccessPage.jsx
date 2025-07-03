@@ -26,7 +26,7 @@ export default function AuthSuccessPage() {
     localStorage.setItem('userType', userTypeParam);
 
     // Verificar token con el backend
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/verify-token`, {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify-token`, {
 
       method: 'POST',
       headers: {
